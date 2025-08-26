@@ -1,0 +1,52 @@
+{
+  "contentHash": "21d9e478fae10ffe80782f6ea1cd5dc1",
+  "runtime": "node",
+  "environment": "dev",
+  "packageVersion": "4.0.1",
+  "cliPackageVersion": "4.0.1",
+  "target": "dev",
+  "files": [
+    {
+      "entry": "src/trigger/example.ts",
+      "out": "/home/tochukwu/Desktop/New Era/Softwares/OGpips/.trigger/tmp/build-5Aj7wQ/Desktop/New Era/Softwares/OGpips/src/trigger/example.mjs"
+    }
+  ],
+  "sources": {
+    "src/trigger/example.ts": {
+      "contents": "eJxdkEFrwzAMhe/+FW85peA1hbJLSscOO+y+wc4mUTJTxwq20iaE/Pdhr7Cxi0A8fU96ssPIQbDCcd9T0BATLxo3YwUbusADihcJNon7lq5VbC/V9ViclKI5ow37KPgi5/iTg2s/TLzgnH3KVQG2rVFk+fGW9EIroKrwTgLjwaNY9sZhMPPrFEzqIIwx0JW8ZJ/4c0iYvLe+h/UtddZbIbco/AVrHA8Hnd2FR9BMzSQJMZ1QSCIiNRHlEwbr4w7coeFhnIQUkn8NExffoBzN4ti0NYxfNFY0MmPb4fyMlAn3d+0d92XxlsJp5HQPRZq+0/qOnVRmTP5qKvuOQ7mmW9i3scbT71AgmYK/bwEGitH0VOP/lqxvCti02nanb9tfkps=",
+      "contentHash": "1334945dbc4e965d389e3f5e297c4ead"
+    },
+    "trigger.config.ts": {
+      "contents": "eJxlUE2P0zAUvOdXjHICKTSFShy8FxB7qQQn9oIQQl77JXmtP4L9nFa76n9HSRu0Ky7+mPHM+A37MSbBMyx1HOhLDB33uKBL0aP+JIn7ntLG0tRme2ynXX1XVXReRJY6XZy8kr55roAxxQMZUajn0+/TE3fDoTsa0d5y6o0//KmbCkglCHtSqEO0tEAu9l9pIqdQu9gvUNviYSB4fYaJfixCyGRisBkaovMRnKGdiyeykDi7brDvIANd6VQC6GyIbIYMnGFL0sIxNGDBiZ3DIyFLHEeym2vij1hgdECcKCW2dBXGAB3AwfLEtmi3+N8U34kwiIxZte3L2mw0uU0l5Nbr87s1usI80P3tprD7uN0ulZAkpqww9whQ0I+O7D7c06QgqVCz4Lfq12eL2WcR8qNkhV2zohwe2FMssg/fssL77TXlpviP+0d22khMCh9WIOlgo+cnevmLy7wti+WUFX7WmzYns45f/2qqy9u76i/rN8N0",
+      "contentHash": "e64e717ce133296c5daf994a25deee65"
+    },
+    "package.json": {
+      "contents": "eJyFjjFvwjAQhXf/ipPnyiQFtRJTpXbp3LFqJZM70oNgR2cTihD/HZ2TCjqxfve+e+9kAGzwO7JLsLHtuU/2QdlAkjgGxbWrXDXSneeCkjQzDki/bjPlUyPc52SXcDIACrKXrNkQkeCfYADORdrS8RAF1fr8KsTv808U1ca3HTcUUln3/vE6MqSxbJr3B3sKSKFhuhnxkoXblsQhDbOEW81/L1zl6mKpFzOFofD62T1eD5k6asWvJ6V+cvPrcKTh7X7has8d3lSqbs7mAniUZQM=",
+      "contentHash": "58cec8490f0731483e9830c82c4a83f5"
+    }
+  },
+  "externals": [
+    {
+      "name": "import-in-the-middle",
+      "version": "1.11.0"
+    }
+  ],
+  "config": {
+    "project": "proj_wzifhjfkctamdirgcmjq",
+    "dirs": [
+      "./src/trigger"
+    ]
+  },
+  "outputPath": "/home/tochukwu/Desktop/New Era/Softwares/OGpips/.trigger/tmp/build-5Aj7wQ",
+  "indexWorkerEntryPoint": "/home/tochukwu/Desktop/New Era/Softwares/OGpips/.trigger/tmp/build-5Aj7wQ/.npm/_npx/f51a09bd0abf5f10/node_modules/trigger.dev/dist/esm/entryPoints/dev-index-worker.mjs",
+  "runWorkerEntryPoint": "/home/tochukwu/Desktop/New Era/Softwares/OGpips/.trigger/tmp/build-5Aj7wQ/.npm/_npx/f51a09bd0abf5f10/node_modules/trigger.dev/dist/esm/entryPoints/dev-run-worker.mjs",
+  "configPath": "/home/tochukwu/Desktop/New Era/Softwares/OGpips/.trigger/tmp/build-5Aj7wQ/Desktop/New Era/Softwares/OGpips/trigger.config.mjs",
+  "customConditions": [],
+  "deploy": {
+    "env": {}
+  },
+  "build": {},
+  "otelImportHook": {
+    "include": []
+  }
+}

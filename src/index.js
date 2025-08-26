@@ -35,20 +35,49 @@ async function getPipValue(pair, base, quote) {
 
   console.log(`🌍 Fetching pip value for ${pair} from API...`);
 
+  // Get price of base/quote
   const url = `https://api.twelvedata.com/price?symbol=${base}/${quote}&apikey=${process.env.FOREX_API_KEY}`;
   const res = await fetch(url);
   const data = await res.json();
 
   if (!data.price) throw new Error("Invalid pair or API error");
-
   const quoteToUsd = Number(data.price);
 
-  // Pip value per 0.01 lot (micro lot)
   let pipValuePerLot;
-  if (quote === "JPY") {
-    pipValuePerLot = (1000 / quoteToUsd);
+
+  if (quote === "USD") {
+    // ✅ Direct USD quoted pairs → always $10 per lot
+    pipValuePerLot = 10;
+  } else if (quote === "JPY") {
+    // ✅ JPY quoted pairs → pip = 0.01 = 1000 JPY per lot
+    // Convert 1000 JPY → USD using USDJPY rate
+    const usdJpyUrl = `https://api.twelvedata.com/price?symbol=USD/JPY&apikey=${process.env.FOREX_API_KEY}`;
+    const usdJpyRes = await fetch(usdJpyUrl);
+    const usdJpyData = await usdJpyRes.json();
+    const usdJpyRate = Number(usdJpyData.price);
+
+    pipValuePerLot = 1000 / usdJpyRate;
+  } else if (quote === "CAD") {
+    // ✅ CAD quoted pairs → 10 CAD per pip per lot
+    // Convert CAD → USD using USDCAD
+    const usdCadUrl = `https://api.twelvedata.com/price?symbol=USD/CAD&apikey=${process.env.FOREX_API_KEY}`;
+    const usdCadRes = await fetch(usdCadUrl);
+    const usdCadData = await usdCadRes.json();
+    const usdCadRate = Number(usdCadData.price);
+
+    pipValuePerLot = 10 / usdCadRate;
+  } else if (quote === "CHF") {
+    // ✅ CHF quoted pairs → 10 CHF per pip per lot
+    // Convert CHF → USD using USDCHF
+    const usdChfUrl = `https://api.twelvedata.com/price?symbol=USD/CHF&apikey=${process.env.FOREX_API_KEY}`;
+    const usdChfRes = await fetch(usdChfUrl);
+    const usdChfData = await usdChfRes.json();
+    const usdChfRate = Number(usdChfData.price);
+
+    pipValuePerLot = 10 / usdChfRate;
   } else {
-    pipValuePerLot = (10 / quoteToUsd);
+    // ✅ All other pairs → convert via quote currency to USD
+    pipValuePerLot = (100000 * 0.0001) / quoteToUsd;
   }
 
   // Cache it
@@ -75,7 +104,6 @@ bot.start((ctx) => {
 bot.on("text", async (ctx) => {
   const input = ctx.message.text.trim().split(/\s+/);
 
-  // Expect 4 values: balance, riskPercent, stopLossPoints, pair
   if (input.length !== 4)
     return ctx.reply(
       "⚠️ Wrong format.\n\n" +
@@ -99,29 +127,18 @@ bot.on("text", async (ctx) => {
   }
 
   try {
-    // Validate pair
     const base = pair.slice(0, 3);
     const quote = pair.slice(3, 6);
     if (pair.length !== 6 || !/^[A-Z]{6}$/.test(pair)) {
-      return ctx.reply(
-        "⚠️ Please enter a valid currency pair like EURUSD or USDJPY."
-      );
+      return ctx.reply("⚠️ Please enter a valid currency pair like EURUSD or USDJPY.");
     }
 
-    // Get pip value (from cache or API)
-    const pipValuePerLot = await getPipValue(pair, base, quote); 
+    const pipValuePerLot = await getPipValue(pair, base, quote);
     console.log(`Pip value for ${pair}: $${pipValuePerLot} per 1 lot`);
-    
 
-    // Convert points -> pips
     const stopLossPips = stopLossPoints / 10;
-
-    // Risk amount
     const riskAmount = (balance * riskPercent) / 100;
-
-    // Lot size calculation
     const lotSize = riskAmount / (stopLossPips * pipValuePerLot);
-    
 
     ctx.reply(
       `✅ *OGpips Risk Result*\n\n` +
@@ -129,22 +146,19 @@ bot.on("text", async (ctx) => {
         `🎯 Risk: ${riskPercent}% ($${riskAmount.toFixed(2)})\n` +
         `📉 Stop Loss: ${stopLossPoints} points (${stopLossPips} pips)\n` +
         `💱 Pair: ${pair}\n` +
-        `📊 Pip Value: $${pipValuePerLot.toFixed(2)} per 1 lot\n\n` +
+        `📊 Pip Value: $${pipValuePerLot.toFixed(2)} per 1 lot (USD)\n\n` +
         `👉 Recommended Lot Size: *${lotSize.toFixed(2)}*`,
       { parse_mode: "Markdown" }
     );
   } catch (err) {
     console.error(err);
-    ctx.reply(
-      "⚠️ Error fetching pip value. Please check the pair or try again later."
-    );
+    ctx.reply("⚠️ Error fetching pip value. Please check the pair or try again later.");
   }
 });
 
-// Launch the bot
+// Launch bot
 bot.launch();
 console.log("🚀 OGpipsBot is running...");
 
-// Enable graceful stop
 process.once("SIGINT", () => bot.stop("SIGINT"));
 process.once("SIGTERM", () => bot.stop("SIGTERM"));
