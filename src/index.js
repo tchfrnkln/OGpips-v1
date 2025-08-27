@@ -164,6 +164,8 @@ async function requireMembership(ctx) {
     return true;
   }
   try {
+    console.log("group Id", GROUP_ID);
+    
     const userId = ctx.from?.id;
     if (!userId) throw new Error("No user id");
 
@@ -194,7 +196,7 @@ bot.start(async (ctx) => {
   ctx.reply(
     "👋 Welcome to OGpipsBot!\n\n" +
       "Send: `balance riskPercent stopLossPoints pair` (points, 1 pip = 10 points)\n" +
-      "Example: `100 2 500 EURUSD` (500 points = 50 pips)",
+      "Example: `100 5 500 EURUSD` (500 points = 50 pips)",
     { parse_mode: "Markdown" }
   );
 });
