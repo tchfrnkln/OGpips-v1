@@ -13,10 +13,10 @@ const bot = new Telegraf(process.env.BOT_TOKEN);
 
 // ====== CONFIG: group membership ======
 const GROUP_ID = process.env.GROUP_ID;
-const JOIN_LINK = `https://t.me/${process.env.GROUP_ID}`;
+const JOIN_LINK = process.env.JOIN_LINK;
 
 // File to store cached pip values (USD per 1 lot)
-const pipFilePath = path.join(__dirname, "pipValues.json");
+const pipFilePath = path.join(__dirname, "piorpValues.json");
 
 // Helpers: load/save cache
 function loadPipValues() {
@@ -164,8 +164,7 @@ async function requireMembership(ctx) {
     return true;
   }
   try {
-    console.log("group Id", GROUP_ID);
-    
+
     const userId = ctx.from?.id;
     if (!userId) throw new Error("No user id");
 
