@@ -209,7 +209,7 @@ bot.on("text", async (ctx) => {
 
   if (input.length !== 4) {
     return ctx.reply(
-      "⚠️ Wrong format. Send like: `100 2 500 EURUSD` (balance risk% stopPoints pair)",
+      "⚠️ Wrong format. Send like: `100 20 500 EURUSD` (balance risk% stopPoints pair)",
       { parse_mode: "Markdown" }
     );
   }
