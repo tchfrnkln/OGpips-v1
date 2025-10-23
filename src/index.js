@@ -4,26 +4,24 @@
 // Built with ❤️ for Naija forex traders
 
 const { Telegraf } = require("telegraf");
+const express = require("express");
 const fetch = require("node-fetch");
 const fs = require("fs");
 const path = require("path");
 require("dotenv").config();
 
+// ========== BOT INITIALIZATION ==========
 const bot = new Telegraf(process.env.BOT_TOKEN);
-
-// ====== CONFIG: group membership ======
 const GROUP_ID = process.env.GROUP_ID;
 const JOIN_LINK = process.env.JOIN_LINK;
-
-// File to store cached pip values (USD per 1 lot)
 const pipFilePath = path.join(__dirname, "piorpValues.json");
 
-// Helpers: load/save cache
+// ========== CACHE HELPERS ==========
 function loadPipValues() {
   if (!fs.existsSync(pipFilePath)) return {};
   try {
     return JSON.parse(fs.readFileSync(pipFilePath, "utf8"));
-  } catch (e) {
+  } catch {
     return {};
   }
 }
@@ -36,52 +34,43 @@ function savePipValues(data) {
   }
 }
 
-// Fetch a single price from Twelve Data (symbol format like "EUR/USD" or "USD/JPY")
+// ========== PRICE FETCHING ==========
 async function fetchPrice(symbol) {
   const apiKey = process.env.FOREX_API_KEY;
   if (!apiKey) throw new Error("Missing FOREX_API_KEY in .env");
-  const url = `https://api.twelvedata.com/price?symbol=${encodeURIComponent(symbol)}&apikey=${apiKey}`;
+  const url = `https://api.twelvedata.com/price?symbol=${encodeURIComponent(
+    symbol
+  )}&apikey=${apiKey}`;
   const res = await fetch(url);
   if (!res.ok) throw new Error(`HTTP ${res.status} fetching ${symbol}`);
   const data = await res.json();
-  if (!data || data.price === undefined || data.price === null) {
+  if (!data || data.price === undefined || data.price === null)
     throw new Error(`No price for ${symbol}`);
-  }
   const p = Number(data.price);
   if (!isFinite(p)) throw new Error(`Bad price for ${symbol}`);
   return p;
 }
 
-/**
- * Return USD per 1 unit of <quote>.
- * Tries in order:
- *  1) QUOTE/USD  (direct)
- *  2) USD/QUOTE  (invert)
- *  3) triangulate via a list of intermediaries (QUOTE/<m> * <m>/USD or inverse)
- */
+// ========== QUOTE → USD CONVERSION ==========
 async function getQuoteToUSD(quote) {
   quote = quote.toUpperCase();
   if (quote === "USD") return 1;
 
-  // Try direct QUOTE/USD
   try {
     const direct = await fetchPrice(`${quote}/USD`);
-    return direct; // 1 QUOTE = direct USD
+    return direct;
   } catch (_) {}
 
-  // Try USD/QUOTE and invert
   try {
     const inv = await fetchPrice(`USD/${quote}`);
     if (inv === 0) throw new Error("zero rate");
-    return 1 / inv; // 1 QUOTE = 1/(USD/QUOTE) USD
+    return 1 / inv;
   } catch (_) {}
 
-  // Triangulation: try common intermediaries
   const inters = ["EUR", "GBP", "AUD", "CAD", "CHF", "JPY", "NZD", "SGD"];
   for (const m of inters) {
     if (m === quote || m === "USD") continue;
 
-    // Try QUOTE / m  and m / USD
     try {
       const q_m = await fetchPrice(`${quote}/${m}`);
       const m_usd = await (async () => {
@@ -94,7 +83,6 @@ async function getQuoteToUSD(quote) {
       })();
       return q_m * m_usd;
     } catch (_) {
-      // try m/QUOTE and m/USD
       try {
         const m_q = await fetchPrice(`${m}/${quote}`);
         const m_usd = await (async () => {
@@ -107,33 +95,24 @@ async function getQuoteToUSD(quote) {
         })();
         if (m_q === 0) continue;
         return (1 / m_q) * m_usd;
-      } catch (_) {
-        // keep trying others
-      }
+      } catch (_) {}
     }
   }
 
   throw new Error(`Unable to derive ${quote}→USD rate`);
 }
 
-/**
- * Main: get pip value per 1 lot (100,000 units) in USD for any pair.
- * - For non-JPY pairs: pip size = 0.0001 ⇒ pipInQuote = 10 (quote units)
- * - For JPY pairs: pip size = 0.01   ⇒ pipInQuote = 1000 (JPY units)
- * - Metal overrides (adjust if broker differs)
- */
+// ========== PIP VALUE ==========
 async function getPipValue(pair) {
   const P = pair.toUpperCase().replace(/[^A-Z]/g, "");
   if (P.length !== 6) throw new Error("Invalid pair format");
 
-  // Load cache
   const cache = loadPipValues();
   if (cache[P]) return cache[P];
 
-  // Special overrides (adjust to your broker’s contract size)
   const OVERRIDES = {
-    "XAUUSD": 1.0, // $1 per pip per 1 lot
-    "XAGUSD": 0.5, // example value; verify with broker
+    XAUUSD: 1.0,
+    XAGUSD: 0.5,
   };
   if (OVERRIDES[P]) {
     cache[P] = OVERRIDES[P];
@@ -143,36 +122,24 @@ async function getPipValue(pair) {
 
   const base = P.slice(0, 3);
   const quote = P.slice(3, 6);
-
-  // pip in quote currency units per 1 lot
-  const pipInQuote = quote === "JPY" ? 1000 : 10; // 1000 JPY or 10 quote units
-
-  // convert quote -> USD
-  const quoteToUsd = await getQuoteToUSD(quote); // USD per 1 QUOTE
-  const pipUSD = pipInQuote * quoteToUsd; // USD per pip per 1 lot
-
-  // cache and return
+  const pipInQuote = quote === "JPY" ? 1000 : 10;
+  const quoteToUsd = await getQuoteToUSD(quote);
+  const pipUSD = pipInQuote * quoteToUsd;
   cache[P] = Number(pipUSD);
   savePipValues(cache);
   return cache[P];
 }
 
-// ====== Membership gate helper ======
+// ========== MEMBERSHIP GATE ==========
 async function requireMembership(ctx) {
-  if (!GROUP_ID) {
-    // If no GROUP_ID configured, allow all (fail-open)
-    return true;
-  }
+  if (!GROUP_ID) return true;
   try {
-
     const userId = ctx.from?.id;
     if (!userId) throw new Error("No user id");
-
     const member = await ctx.telegram.getChatMember(GROUP_ID, userId);
     const okStatuses = ["creator", "administrator", "member"];
-    if (okStatuses.includes(member.status)) {
-      return true;
-    }
+    if (okStatuses.includes(member.status)) return true;
+
     await ctx.reply(
       `🚫 Access restricted.\n\nJoin our group to use this bot:\n${JOIN_LINK}`
     );
@@ -186,8 +153,7 @@ async function requireMembership(ctx) {
   }
 }
 
-// ------------------- Bot logic -------------------
-
+// ========== BOT COMMANDS ==========
 bot.start(async (ctx) => {
   const allowed = await requireMembership(ctx);
   if (!allowed) return;
@@ -205,7 +171,6 @@ bot.on("text", async (ctx) => {
   if (!allowed) return;
 
   const input = (ctx.message.text || "").trim().split(/\s+/);
-
   if (input.length !== 4) {
     return ctx.reply(
       "⚠️ Wrong format. Send like: `100 20 500 EURUSD` (balance risk% stopPoints pair)",
@@ -229,12 +194,9 @@ bot.on("text", async (ctx) => {
     if (!/^[A-Z]{6}$/.test(pair))
       return ctx.reply("⚠️ Invalid pair. Use like EURUSD or AUDJPY.");
 
-    // pips and pip value
     const stopLossPips = stopLossPoints / 10;
-    const pipValuePerLot = await getPipValue(pair); // USD per pip per 1 lot
+    const pipValuePerLot = await getPipValue(pair);
     const riskAmount = (balance * riskPercent) / 100;
-
-    // lot size (in standard lots)
     const lotSize = riskAmount / (stopLossPips * pipValuePerLot);
 
     await ctx.reply(
@@ -244,7 +206,9 @@ bot.on("text", async (ctx) => {
         `📉 Stop Loss: ${stopLossPoints} points (${stopLossPips} pips)\n` +
         `💱 Pair: ${pair}\n` +
         `📊 Pip Value: $${pipValuePerLot.toFixed(4)} per 1 lot (USD)\n\n` +
-        `👉 Recommended Lot Size: *${(Math.floor(lotSize * 100) / 100).toFixed(2)}*`,
+        `👉 Recommended Lot Size: *${(
+          Math.floor(lotSize * 100) / 100
+        ).toFixed(2)}*`,
       { parse_mode: "Markdown" }
     );
   } catch (err) {
@@ -255,10 +219,28 @@ bot.on("text", async (ctx) => {
   }
 });
 
-// start the bot (long-polling)
-bot.launch();
-console.log("🚀 OGpipsBot is running...");
+// ========== EXPRESS SERVER FOR WEBHOOK ==========
+const app = express();
+app.use(express.json());
+app.use(bot.webhookCallback("/webhook"));
 
-// graceful stop
-process.once("SIGINT", () => bot.stop("SIGINT"));
-process.once("SIGTERM", () => bot.stop("SIGTERM"));
+const BOT_URL = process.env.BOT_URL; // e.g. https://ogpipsbot-xxxxx.a.run.app
+if (!BOT_URL) {
+  console.error("❌ Missing BOT_URL env variable");
+  process.exit(1);
+}
+
+// Set webhook on startup
+(async () => {
+  try {
+    await bot.telegram.setWebhook(`${BOT_URL}/webhook`);
+    console.log(`✅ Webhook set to ${BOT_URL}/webhook`);
+  } catch (err) {
+    console.error("Failed to set webhook:", err);
+  }
+})();
+
+const port = process.env.PORT || 8080;
+app.listen(port, () =>
+  console.log(`🚀 OGpipsBot webhook server running on port ${port}`)
+);
