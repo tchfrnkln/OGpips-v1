@@ -224,6 +224,9 @@ const app = express();
 app.use(express.json());
 app.use(bot.webhookCallback("/webhook"));
 
+app.get("/health", (req, res) => res.send("OK"));
+
+
 const BOT_URL =
   process.env.BOT_URL ||
   `https://${process.env.RENDER_EXTERNAL_HOSTNAME}`;
