@@ -224,11 +224,15 @@ const app = express();
 app.use(express.json());
 app.use(bot.webhookCallback("/webhook"));
 
-const BOT_URL = process.env.BOT_URL; // e.g. https://ogpipsbot-xxxxx.a.run.app
+const BOT_URL =
+  process.env.BOT_URL ||
+  `https://${process.env.RENDER_EXTERNAL_HOSTNAME}`;
+
 if (!BOT_URL) {
-  console.error("❌ Missing BOT_URL env variable");
+  console.error("❌ Missing BOT_URL and RENDER_EXTERNAL_HOSTNAME env variable");
   process.exit(1);
 }
+
 
 // Set webhook on startup
 (async () => {
