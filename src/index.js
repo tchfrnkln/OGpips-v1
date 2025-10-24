@@ -14,7 +14,7 @@ require("dotenv").config();
 const bot = new Telegraf(process.env.BOT_TOKEN);
 const GROUP_ID = process.env.GROUP_ID;
 const JOIN_LINK = process.env.JOIN_LINK;
-const pipFilePath = path.join(__dirname, "piorpValues.json");
+const pipFilePath = path.join(__dirname, "pipValues.json");
 
 // ========== CACHE HELPERS ==========
 function loadPipValues() {
