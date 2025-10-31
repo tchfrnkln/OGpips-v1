@@ -25,6 +25,7 @@ function loadPipValues() {
     return {};
   }
 }
+
 function savePipValues(data) {
   try {
     fs.writeFileSync(pipFilePath, JSON.stringify(data, null, 2));
@@ -161,7 +162,8 @@ bot.start(async (ctx) => {
   ctx.reply(
     "👋 Welcome to OGpipsBot!\n\n" +
       "Send: `balance riskPercent stopLossPoints pair` (points, 1 pip = 10 points)\n" +
-      "Example: `100 5 500 EURUSD` (500 points = 50 pips)",
+      "Example: `100 5 500 EURUSD` (500 points = 50 pips)\n\n" +
+      "Add `split` at the end to get 3 position sizes.\nExample: `200 20 55 USDCHF split`",
     { parse_mode: "Markdown" }
   );
 });
@@ -171,9 +173,9 @@ bot.on("text", async (ctx) => {
   if (!allowed) return;
 
   const input = (ctx.message.text || "").trim().split(/\s+/);
-  if (input.length !== 4) {
+  if (input.length < 4) {
     return ctx.reply(
-      "⚠️ Wrong format. Send like: `100 20 500 EURUSD` (balance risk% stopPoints pair)",
+      "⚠️ Wrong format. Send like: `100 20 500 EURUSD` (balance risk% stopPoints pair)\nAdd `split` to break into 3 lots.",
       { parse_mode: "Markdown" }
     );
   }
@@ -183,6 +185,7 @@ bot.on("text", async (ctx) => {
   const riskPercent = Number(String(riskStr).replace("%", ""));
   const stopLossPoints = Number(slPointsStr);
   const pair = pairRaw.toUpperCase();
+  const splitMode = input[4]?.toLowerCase() === "split";
 
   if (![balance, riskPercent, stopLossPoints].every((n) => isFinite(n))) {
     return ctx.reply("⚠️ Please enter valid numbers like: `100 2 500 EURUSD`", {
@@ -199,6 +202,20 @@ bot.on("text", async (ctx) => {
     const riskAmount = (balance * riskPercent) / 100;
     const lotSize = riskAmount / (stopLossPips * pipValuePerLot);
 
+    let splitText = "";
+    if (splitMode) {
+      // simple proportional 3-way split (50%, 35%, 15%)
+      const p1 = lotSize * 0.5;
+      const p2 = lotSize * 0.35;
+      const p3 = lotSize * 0.15;
+      splitText =
+        `\n\n🔹 *Split Positions:*` +
+        `\n1️⃣ ${p1.toFixed(2)} lots` +
+        `\n2️⃣ ${p2.toFixed(2)} lots` +
+        `\n3️⃣ ${p3.toFixed(2)} lots` +
+        `\n_(≈ ${lotSize.toFixed(2)} total)_`;
+    }
+
     await ctx.reply(
       `✅ *OGpips Risk Result*\n\n` +
         `💰 Balance: $${balance}\n` +
@@ -206,9 +223,8 @@ bot.on("text", async (ctx) => {
         `📉 Stop Loss: ${stopLossPoints} points (${stopLossPips} pips)\n` +
         `💱 Pair: ${pair}\n` +
         `📊 Pip Value: $${pipValuePerLot.toFixed(4)} per 1 lot (USD)\n\n` +
-        `👉 Recommended Lot Size: *${(
-          Math.floor(lotSize * 100) / 100
-        ).toFixed(2)}*`,
+        `👉 Recommended Lot Size: *${lotSize.toFixed(2)}*` +
+        splitText,
       { parse_mode: "Markdown" }
     );
   } catch (err) {
@@ -226,16 +242,13 @@ app.use(bot.webhookCallback("/webhook"));
 
 app.get("/health", (req, res) => res.send("OK"));
 
-
 const BOT_URL =
-  process.env.BOT_URL ||
-  `https://${process.env.RENDER_EXTERNAL_HOSTNAME}`;
+  process.env.BOT_URL || `https://${process.env.RENDER_EXTERNAL_HOSTNAME}`;
 
 if (!BOT_URL) {
   console.error("❌ Missing BOT_URL and RENDER_EXTERNAL_HOSTNAME env variable");
   process.exit(1);
 }
-
 
 // Set webhook on startup
 (async () => {
