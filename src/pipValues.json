@@ -1,10 +1,6 @@
 {
   "XAUUSD": 1,
-  "XAGUSD": 50,
-  "XPTUSD": 10,
-  "XPDUSD": 10,
-  "XCUUSD": 25,
-  "BTCUSD": 1,
-  "ETHUSD": 10,
-  "LTCUSD": 100
+  "XAGUSD": 0.5,
+  "ETHUSD": 0.1,
+  "BTCUSD": 0.1
 }
